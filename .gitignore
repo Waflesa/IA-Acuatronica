@@ -9,3 +9,7 @@ __pycache__/
 venv/
 .vscode/
 .idea/
+
+# Sistema
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1 @@
+# AcuaChajin · App de escritorio (PySide6/Qt)
