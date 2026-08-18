@@ -4,7 +4,7 @@
 #define MyAppExeName "H2-OBSERVER.exe"
 
 #ifndef DistDir
-#define DistDir "dist\H2-OBSERVER"
+#define DistDir "..\dist\H2-OBSERVER"
 #endif
 
 [Setup]
@@ -15,9 +15,9 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={localappdata}\Programs\H2-OBSERVER
 DefaultGroupName=H2-OBSERVER
 DisableProgramGroupPage=yes
-OutputDir=dist
+OutputDir=..\dist
 OutputBaseFilename=H2-OBSERVER-Setup
-SetupIconFile=logo.ico
+SetupIconFile=..\logo.ico
 UninstallDisplayIcon={app}\logo.ico
 Compression=lzma2
 SolidCompression=yes

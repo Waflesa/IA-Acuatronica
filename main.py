@@ -3,10 +3,10 @@ import sys
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
-from app_theme import apply, current
-from logic.sensors import Sensors
-from main_window import MainWindow
-from splash import SplashScreen
+from ui.app_theme import apply, current
+from ui.logic.sensors import Sensors
+from ui.main_window import MainWindow
+from ui.splash import SplashScreen
 
 
 def main():

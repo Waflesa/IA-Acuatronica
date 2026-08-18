@@ -5,7 +5,7 @@ from PySide6.QtGui import (QBrush, QColor, QFont, QFontDatabase, QFontMetrics,
                            QGuiApplication, QImage, QLinearGradient, QPainter, QPen, QPixmap)
 from PySide6.QtWidgets import QWidget
 
-from paths import base_dir
+from ui.paths import base_dir
 
 _STEPS = [
     ("Inicializando módulos de control…", 8),

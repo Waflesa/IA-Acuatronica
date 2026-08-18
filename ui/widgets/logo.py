@@ -3,7 +3,7 @@ import os
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QIcon, QImage, QPainter, QPixmap
 
-from paths import base_dir
+from ui.paths import base_dir
 
 _RES_DIR = os.path.join(base_dir(), "resources")
 

@@ -3,7 +3,7 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOB = os.path.join(tempfile.gettempdir(), "h2ob")
 
 

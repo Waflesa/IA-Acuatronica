@@ -1,20 +1,45 @@
+import ctypes
+import ctypes.wintypes
 import datetime
 import math
 
-from PySide6.QtCore import QPointF, Qt, QTimer
-from PySide6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen
+from PySide6.QtCore import QEvent, QPoint, QPointF, QRect, QRectF, Qt, QTimer
+from PySide6.QtGui import QBrush, QColor, QGuiApplication, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QHBoxLayout, QLabel,
                                QMainWindow, QPushButton, QStackedWidget, QTabBar,
                                QVBoxLayout, QWidget)
 
-import app_theme
-from logic.sensors import META
-from pages.alerts_page import AlertsPage
-from pages.dashboard_page import DashboardPage
-from pages.diagnosis_page import DiagnosisPage
-from pages.fuzzy_page import FuzzyPage
-from widgets.logo import logo_icon, logo_pixmap
-from widgets.sensor_tool import SensorTool
+from ui import app_theme
+from ui.logic.sensors import META
+from ui.pages.alerts_page import AlertsPage
+from ui.pages.dashboard_page import DashboardPage
+from ui.pages.diagnosis_page import DiagnosisPage
+from ui.pages.fuzzy_page import FuzzyPage
+from ui.widgets.logo import logo_icon, logo_pixmap
+from ui.widgets.sensor_tool import SensorTool
+
+WM_NCHITTEST = 0x0084
+WM_GETMINMAXINFO = 0x0024
+HTCLIENT = 1
+HTCAPTION = 2
+HTLEFT = 10
+HTRIGHT = 11
+HTTOP = 12
+HTTOPLEFT = 13
+HTTOPRIGHT = 14
+HTBOTTOM = 15
+HTBOTTOMLEFT = 16
+HTBOTTOMRIGHT = 17
+
+
+class _MINMAXINFO(ctypes.Structure):
+    _fields_ = [
+        ("ptReserved", ctypes.wintypes.POINT),
+        ("ptMaxSize", ctypes.wintypes.POINT),
+        ("ptMaxPosition", ctypes.wintypes.POINT),
+        ("ptMinTrackSize", ctypes.wintypes.POINT),
+        ("ptMaxTrackSize", ctypes.wintypes.POINT),
+    ]
 
 
 class _StatusDot(QWidget):
@@ -79,6 +104,67 @@ class _ThemeIconBtn(QPushButton):
         p.end()
 
 
+class _WinBtn(QPushButton):
+    """Botón de ventana: minimizar, maximizar/restaurar o cerrar (iconos vectoriales)."""
+
+    def __init__(self, kind, parent=None):
+        super().__init__(parent)
+        self._kind = kind  # "min" | "max" | "close"
+        self._maximized = False
+        self._hover = False
+        self._color = QColor("#8B98A7")
+        self.setFixedSize(46, 34)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def set_color(self, color):
+        self._color = QColor(color)
+        self.update()
+
+    def set_maximized(self, maximized):
+        if self._maximized != maximized:
+            self._maximized = maximized
+            self.update()
+
+    def enterEvent(self, event):
+        self._hover = True
+        self.update()
+
+    def leaveEvent(self, event):
+        self._hover = False
+        self.update()
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w, h = self.width(), self.height()
+
+        if self._hover:
+            if self._kind == "close":
+                p.fillRect(0, 0, w, h, QColor("#E81123"))
+            else:
+                bg = QColor(self._color)
+                bg.setAlpha(36)
+                p.fillRect(0, 0, w, h, bg)
+
+        icon = QColor("#FFFFFF") if (self._hover and self._kind == "close") else self._color
+        pen = QPen(icon, 1.4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        p.setPen(pen)
+        cx, cy = w / 2.0, h / 2.0
+
+        if self._kind == "min":
+            p.drawLine(QPointF(cx - 4.5, cy), QPointF(cx + 4.5, cy))
+        elif self._kind == "max":
+            if self._maximized:
+                p.drawRect(QRectF(cx - 3.2, cy - 3.6, 7.0, 7.0))
+                p.drawRect(QRectF(cx - 4.6, cy - 1.6, 7.0, 7.0))
+            else:
+                p.drawRect(QRectF(cx - 4.4, cy - 4.0, 8.8, 8.8))
+        else:
+            p.drawLine(QPointF(cx - 4, cy - 4), QPointF(cx + 4, cy + 4))
+            p.drawLine(QPointF(cx - 4, cy + 4), QPointF(cx + 4, cy - 4))
+        p.end()
+
+
 def _vdiv():
     d = QFrame()
     d.setObjectName("vdiv")
@@ -102,6 +188,7 @@ class MainWindow(QMainWindow):
         self._sensors = sensors
         self._theme = app_theme.current()
         self._ribbon_open = True
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setWindowTitle("H2-OBSERVER · Control de Acuaponía")
         self.setWindowIcon(logo_icon())
         self.resize(1320, 800)
@@ -121,6 +208,7 @@ class MainWindow(QMainWindow):
         t.setSpacing(8)
 
         app_row = QHBoxLayout()
+        app_row.setContentsMargins(0, 0, 0, 0)
         app_row.setSpacing(10)
         self.logo_lbl = QLabel()
         self.logo_lbl.setPixmap(logo_pixmap(30))
@@ -147,7 +235,19 @@ class MainWindow(QMainWindow):
         app_row.addSpacing(12)
         app_row.addWidget(self.collapse_btn)
         app_row.addWidget(self.theme_btn)
-        t.addLayout(app_row)
+        self.min_btn = _WinBtn("min")
+        self.max_btn = _WinBtn("max")
+        self.close_btn = _WinBtn("close")
+        self.min_btn.clicked.connect(self.showMinimized)
+        self.max_btn.clicked.connect(self._toggle_max)
+        self.close_btn.clicked.connect(self.close)
+        app_row.addSpacing(6)
+        app_row.addWidget(self.min_btn)
+        app_row.addWidget(self.max_btn)
+        app_row.addWidget(self.close_btn)
+        self._titlebar = QWidget()
+        self._titlebar.setLayout(app_row)
+        t.addWidget(self._titlebar)
 
         self.tabs = QTabBar()
         self.tabs.setObjectName("navTabs")
@@ -230,8 +330,92 @@ class MainWindow(QMainWindow):
 
     def showEvent(self, event):
         super().showEvent(event)
-        hwnd = int(self.winId())
-        QTimer.singleShot(0, lambda: app_theme.apply_titlebar(hwnd, self._theme))
+        QTimer.singleShot(0, self._update_win_buttons)
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.Type.WindowStateChange:
+            QTimer.singleShot(0, self._update_win_buttons)
+        super().changeEvent(event)
+
+    def nativeEvent(self, eventType, message):
+        if eventType == b"windows_generic_MSG":
+            try:
+                addr = int(message)
+            except (TypeError, ValueError, OverflowError):
+                addr = message.__int__()
+            msg = ctypes.wintypes.MSG.from_address(addr)
+            if msg.message == WM_NCHITTEST:
+                l = int(msg.lParam)
+                x = ctypes.c_short(l & 0xFFFF).value
+                y = ctypes.c_short((l >> 16) & 0xFFFF).value
+                dpr = self.devicePixelRatioF() or 1.0
+                res = self._hit_test(QPoint(int(x / dpr), int(y / dpr)))
+                return True, res
+            if msg.message == WM_GETMINMAXINFO:
+                return self._wm_getminmaxinfo(msg)
+        return super().nativeEvent(eventType, message)
+
+    def _hit_test(self, gpos):
+        """Devuelve la zona de Windows (HTCAPTION para arrastrar, HT* para redimensionar)."""
+        if not self.isMaximized():
+            win = self.geometry()
+            m = 6
+            left = gpos.x() - win.left()
+            top = gpos.y() - win.top()
+            right = win.right() - gpos.x()
+            bottom = win.bottom() - gpos.y()
+            if left <= m and top <= m:
+                return HTTOPLEFT
+            if right <= m and top <= m:
+                return HTTOPRIGHT
+            if left <= m and bottom <= m:
+                return HTBOTTOMLEFT
+            if right <= m and bottom <= m:
+                return HTBOTTOMRIGHT
+            if left <= m:
+                return HTLEFT
+            if right <= m:
+                return HTRIGHT
+            if top <= m:
+                return HTTOP
+            if bottom <= m:
+                return HTBOTTOM
+
+        bar = self._titlebar
+        if bar.isVisible():
+            win = self.geometry()
+            bar_bottom = bar.mapToGlobal(QPoint(0, bar.height())).y()
+            if win.top() <= gpos.y() <= bar_bottom and win.left() <= gpos.x() <= win.right():
+                for btn in (self.min_btn, self.max_btn, self.close_btn,
+                            self.theme_btn, self.collapse_btn):
+                    btl = btn.mapToGlobal(QPoint(0, 0))
+                    if QRect(btl, btn.size()).contains(gpos):
+                        return HTCLIENT
+                return HTCAPTION
+        return HTCLIENT
+
+    def _wm_getminmaxinfo(self, msg):
+        info = _MINMAXINFO.from_address(int(msg.lParam))
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        wa = screen.availableGeometry()
+        dpr = self.devicePixelRatioF() or 1.0
+        info.ptMaxPosition.x = int(wa.x() * dpr)
+        info.ptMaxPosition.y = int(wa.y() * dpr)
+        info.ptMaxSize.x = int(wa.width() * dpr)
+        info.ptMaxSize.y = int(wa.height() * dpr)
+        info.ptMinTrackSize.x = self.minimumWidth()
+        info.ptMinTrackSize.y = self.minimumHeight()
+        return True, 0
+
+    def _toggle_max(self):
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+        self._update_win_buttons()
+
+    def _update_win_buttons(self):
+        self.max_btn.set_maximized(self.isMaximized())
 
     def _on_interval(self):
         ms = {"1 s": 1000, "3 s": 3000, "5 s": 5000}[self.combo.currentText()]
@@ -251,6 +435,8 @@ class MainWindow(QMainWindow):
         dark_logo = mode == app_theme.LIGHT
         self.logo_lbl.setPixmap(logo_pixmap(30, dark=dark_logo))
         self.setWindowIcon(logo_icon(64, dark=dark_logo))
+        for btn in (self.min_btn, self.max_btn, self.close_btn):
+            btn.set_color(pal["text"])
         for pg in self.pages:
             if hasattr(pg, "apply_theme"):
                 pg.apply_theme(mode)
@@ -260,8 +446,6 @@ class MainWindow(QMainWindow):
         app_theme.apply(self._app(), mode)
         app_theme.save(mode)
         self._apply_theme(mode)
-        if self.isVisible():
-            app_theme.apply_titlebar(int(self.winId()), mode)
 
     def _toggle_ribbon(self):
         self._ribbon_open = not self._ribbon_open

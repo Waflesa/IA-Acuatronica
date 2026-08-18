@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
-from logic import expert
-from widgets.header import PageHeader
-from widgets.util import repolish
+from ui.logic import expert
+from ui.widgets.header import PageHeader
+from ui.widgets.util import repolish
 
 
 class DiagnosisPage(QWidget):

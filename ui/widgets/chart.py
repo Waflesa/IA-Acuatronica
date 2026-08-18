@@ -1,4 +1,4 @@
-import app_theme
+from ui import app_theme
 from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QValueAxis
 from PySide6.QtCore import QDateTime, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen

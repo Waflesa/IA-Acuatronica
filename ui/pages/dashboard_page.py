@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
-from widgets.chart import LineChartWidget
-from widgets.header import PageHeader
+from ui.widgets.chart import LineChartWidget
+from ui.widgets.header import PageHeader
 
 
 class DashboardPage(QWidget):

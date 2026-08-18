@@ -1,9 +1,8 @@
-import ctypes
 import os
 
 from PySide6.QtCore import QSettings
 
-from paths import base_dir
+from ui.paths import base_dir
 
 DARK = "dark"
 LIGHT = "light"
@@ -12,7 +11,7 @@ ROOT = base_dir()
 
 PALETTE = {
     DARK: {
-        "app": "#0E141B",
+        "app": "#071625",
         "surface": "#0A0F15",
         "card": "#111A24",
         "border": "#22303F",
@@ -66,22 +65,3 @@ def save(mode):
 
 def toggle(mode):
     return LIGHT if mode == DARK else DARK
-
-
-def apply_titlebar(hwnd, mode):
-    """Pinta la barra de título nativa de Windows con el color del tema (DWM)."""
-    try:
-        dwm = ctypes.windll.dwmapi
-        dark = mode == DARK
-        on = ctypes.c_int(1 if dark else 0)
-        dwm.DwmSetWindowAttribute(ctypes.c_void_p(hwnd), 20,
-                                  ctypes.byref(on), ctypes.sizeof(on))
-        col = palette(mode)["surface"]
-        r = int(col[1:3], 16)
-        g = int(col[3:5], 16)
-        b = int(col[5:7], 16)
-        cref = ctypes.c_uint32(b | (g << 8) | (r << 16))  # COLORREF 0x00BBGGRR
-        dwm.DwmSetWindowAttribute(ctypes.c_void_p(hwnd), 35,
-                                  ctypes.byref(cref), ctypes.sizeof(cref))
-    except Exception:
-        pass

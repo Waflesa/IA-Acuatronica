@@ -1,11 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QVBoxLayout, QWidget
 
-from logic import fuzzy
-from logic.sensors import META
-from widgets.actuator_bar import ActuatorBar
-from widgets.cards import section_card
-from widgets.header import PageHeader
+from ui.logic import fuzzy
+from ui.logic.sensors import META
+from ui.widgets.actuator_bar import ActuatorBar
+from ui.widgets.cards import section_card
+from ui.widgets.header import PageHeader
 
 
 class FuzzyPage(QWidget):

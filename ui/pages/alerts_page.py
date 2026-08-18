@@ -3,8 +3,8 @@ import datetime
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea,
                                QVBoxLayout, QWidget)
 
-from logic import expert
-from widgets.header import PageHeader
+from ui.logic import expert
+from ui.widgets.header import PageHeader
 
 
 class AlertsPage(QWidget):
