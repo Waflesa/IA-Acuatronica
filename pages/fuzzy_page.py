@@ -43,7 +43,7 @@ class FuzzyPage(QWidget):
             name_lbl = QLabel(name)
             name_lbl.setObjectName("cardRange")
             val_lbl = QLabel()
-            val_lbl.setStyleSheet("color:#E6EAEF; font-weight:700; font-size:14px;")
+            val_lbl.setObjectName("metricSmall")
             self.sp_labels[key] = val_lbl
             s = QSlider(Qt.Orientation.Horizontal)
             s.setRange(int(lo * 10), int(hi * 10))

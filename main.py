@@ -1,14 +1,12 @@
-import os
 import sys
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
+from app_theme import apply, current
 from logic.sensors import Sensors
 from main_window import MainWindow
 from splash import SplashScreen
-
-ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
@@ -16,10 +14,7 @@ def main():
     app.setApplicationName("H2-OBSERVER")
     app.setStyle("Fusion")
 
-    qss_path = os.path.join(ROOT, "styles.qss")
-    if os.path.exists(qss_path):
-        with open(qss_path, "r", encoding="utf-8") as f:
-            app.setStyleSheet(f.read())
+    apply(app, current())
 
     sensors = Sensors()
     window = MainWindow(sensors)

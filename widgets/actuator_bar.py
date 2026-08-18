@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
-FILL = "#00E676"
+FILL = "#3D9BFF"
 
 
 class ActuatorBar(QWidget):
@@ -12,9 +12,9 @@ class ActuatorBar(QWidget):
 
         row = QHBoxLayout()
         name = QLabel(title)
-        name.setStyleSheet("color:#E6EAEF; font-weight:700; font-size:13px;")
+        name.setObjectName("cardName")
         self.pct = QLabel("0%")
-        self.pct.setStyleSheet("color:#E6EAEF; font-weight:700; font-size:14px;")
+        self.pct.setObjectName("metricSmall")
         row.addWidget(name)
         row.addStretch()
         row.addWidget(self.pct)
@@ -25,7 +25,6 @@ class ActuatorBar(QWidget):
         self.bar.setFixedHeight(6)
         self.bar.setTextVisible(False)
         self.bar.setStyleSheet(
-            "QProgressBar { background:#202A34; border:none; border-radius:3px; }"
             f"QProgressBar::chunk {{ border-radius:3px; background:{fill}; }}"
         )
         v.addWidget(self.bar)

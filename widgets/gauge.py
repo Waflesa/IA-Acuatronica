@@ -2,7 +2,7 @@ from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
-_COLORS = {"ok": "#00E676", "warn": "#E5A93B", "crit": "#E35B5B"}
+_COLORS = {"ok": "#3D9BFF", "warn": "#E6A23C", "crit": "#E35B5B"}
 
 
 class Gauge(QWidget):
@@ -28,10 +28,10 @@ class Gauge(QWidget):
         r = min(w, h) * 0.42
         rect = QRectF(cx - r, cy - r, 2 * r, 2 * r)
 
-        p.setPen(QPen(QColor("#202A34"), 7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        p.setPen(QPen(QColor("#22303F"), 7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         p.drawArc(rect, 0 * 16, 180 * 16)
 
-        color = QColor(_COLORS.get(self._status, "#00E676"))
+        color = QColor(_COLORS.get(self._status, "#3D9BFF"))
         sweep = int(180 * self._frac) * 16
         p.setPen(QPen(color, 7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         p.drawArc(rect, 180 * 16, -sweep)

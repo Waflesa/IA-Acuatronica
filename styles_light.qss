@@ -1,0 +1,116 @@
+/* H2-OBSERVER · Tema claro (plano, acento azul #2E86DE) */
+
+* { outline: none; }
+
+QMainWindow#appBg, QWidget#appBg { background: #EEF2F6; }
+
+/* ---------- Barra superior ---------- */
+QFrame#topBar { background: #FFFFFF; border-bottom: 1px solid #D7DEE6; }
+QLabel#sideName { color: #2E86DE; font-size: 17px; font-weight: 800; letter-spacing: 1px; }
+QLabel#sideStatus { color: #67737F; font-size: 10px; letter-spacing: 1px; }
+
+/* ---------- Ribbon de herramientas ---------- */
+QFrame#ribbon { background: #FFFFFF; border: 1px solid #D7DEE6; border-radius: 8px; }
+QLabel#ribbonCap { color: #67737F; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+QFrame#toolGroup { background: #F6F9FC; border: 1px solid #D7DEE6; border-radius: 6px; }
+QFrame#vdiv { background: #D7DEE6; }
+QLabel#toolCap { color: #67737F; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+QLabel#toolValue { color: #1B2632; font-size: 15px; font-weight: 700; font-family: 'Consolas','Courier New'; }
+
+/* ---------- Pestañas de navegación (tipo Word) ---------- */
+QTabBar#navTabs { background: transparent; }
+QTabBar#navTabs::tab {
+  background: transparent; color: #67737F; font-size: 13px; font-weight: 700;
+  padding: 8px 18px; border: none; border-bottom: 2px solid transparent;
+}
+QTabBar#navTabs::tab:hover { color: #1B2632; }
+QTabBar#navTabs::tab:selected { color: #2E86DE; border-bottom: 2px solid #2E86DE; }
+
+/* ---------- Botones de esquina ---------- */
+QPushButton#cornerBtn {
+  background: transparent; border: none; color: #67737F;
+  padding: 4px 10px; font-size: 11px; font-weight: 700;
+}
+QPushButton#cornerBtn:hover { color: #2E86DE; background: rgba(46,134,222,0.07); border-radius: 4px; }
+
+/* ---------- Textos ---------- */
+QLabel#heading { color: #1B2632; font-size: 20px; font-weight: 800; }
+QLabel#sub { color: #67737F; font-size: 12px; }
+QLabel#cardName { color: #1B2632; font-size: 13px; font-weight: 700; }
+QLabel#cardValue { color: #1B2632; font-size: 26px; font-weight: 700; font-family: 'Consolas','Courier New'; }
+QLabel#cardUnit { color: #67737F; font-size: 13px; }
+QLabel#cardRange { color: #67737F; font-size: 11px; }
+QLabel#sectionTitle { color: #67737F; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+
+/* ---------- Tarjetas ---------- */
+QFrame#card { background: #FFFFFF; border: 1px solid #D7DEE6; border-radius: 10px; }
+
+/* ---------- Pills de estado (sutiles) ---------- */
+QLabel#pillOk {
+  color: #1F6FCE; background: rgba(46,134,222,0.07); border: 1px solid rgba(46,134,222,0.5);
+  border-radius: 10px; padding: 2px 8px; font-size: 9px; font-weight: 700;
+}
+QLabel#pillWarn {
+  color: #B96E12; background: rgba(201,119,26,0.07); border: 1px solid rgba(201,119,26,0.5);
+  border-radius: 10px; padding: 2px 8px; font-size: 9px; font-weight: 700;
+}
+QLabel#pillCrit {
+  color: #B23B3B; background: rgba(193,59,59,0.07); border: 1px solid rgba(193,59,59,0.5);
+  border-radius: 10px; padding: 2px 8px; font-size: 9px; font-weight: 700;
+}
+
+/* ---------- Diagnóstico / alertas ---------- */
+QFrame#dxOk { background: #FFFFFF; border: 1px solid rgba(46,134,222,0.35); border-radius: 8px; }
+QFrame#dxWarn { background: #FFFFFF; border: 1px solid rgba(201,119,26,0.5); border-radius: 8px; }
+QFrame#dxCrit { background: #FFFFFF; border: 1px solid rgba(193,59,59,0.6); border-radius: 8px; }
+QLabel#dxTitle { color: #1B2632; font-size: 13px; font-weight: 700; }
+QLabel#dxBody { color: #4A5664; font-size: 12px; }
+QLabel#protoStep { color: #4A5664; font-size: 12px; }
+
+/* ---------- Sliders ---------- */
+QSlider::groove:horizontal { height: 4px; background: #D7DEE6; border-radius: 2px; }
+QSlider::sub-page:horizontal { background: #2E86DE; border-radius: 2px; }
+QSlider::handle:horizontal {
+  width: 14px; height: 14px; margin: -6px 0; border-radius: 7px;
+  background: #2E86DE; border: 2px solid #FFFFFF;
+}
+
+/* ---------- Checkbox ---------- */
+QCheckBox { color: #4A5664; font-size: 10px; }
+QCheckBox::indicator {
+  width: 14px; height: 14px; border-radius: 4px;
+  border: 1px solid #C9D3DC; background: #FFFFFF;
+}
+QCheckBox::indicator:checked { background: #2E86DE; border-color: #2E86DE; }
+
+/* ---------- Scrollbars ---------- */
+QScrollBar:vertical { background: transparent; width: 10px; margin: 0; }
+QScrollBar::handle:vertical { background: #C4CED8; border-radius: 5px; min-height: 30px; }
+QScrollBar::handle:vertical:hover { background: #AEBAC6; }
+QScrollBar:horizontal { background: transparent; height: 10px; }
+QScrollBar::handle:horizontal { background: #C4CED8; border-radius: 5px; min-width: 30px; }
+QScrollBar::add-line, QScrollBar::sub-line { height: 0; width: 0; }
+
+/* ---------- Botones / combos ---------- */
+QPushButton {
+  background: #FFFFFF; border: 1px solid #C9D3DC; border-radius: 6px;
+  color: #3A4652; padding: 6px 12px; font-weight: 600;
+}
+QPushButton:hover { border-color: #2E86DE; color: #2E86DE; }
+QPushButton:pressed { background: rgba(46,134,222,0.1); }
+
+QComboBox {
+  background: #FFFFFF; border: 1px solid #C9D3DC; border-radius: 6px;
+  padding: 4px 8px; color: #3A4652;
+}
+QComboBox QAbstractItemView {
+  background: #FFFFFF; border: 1px solid #C9D3DC;
+  selection-background-color: rgba(46,134,222,0.12); color: #1B2632;
+}
+
+/* ---------- Barras de progreso ---------- */
+QProgressBar { background: #D7DEE6; border: none; border-radius: 3px; }
+
+/* ---------- Métricas ---------- */
+QLabel#metricValue { color: #1B2632; font-size: 26px; font-weight: 700; }
+QLabel#metricSmall { color: #1B2632; font-size: 14px; font-weight: 700; }

@@ -20,13 +20,13 @@ class DashboardPage(QWidget):
         charts_row = QHBoxLayout()
         charts_row.setSpacing(14)
         self.chart_a = LineChartWidget(
-            [("Temperatura °C", "#00E676", "temp"),
-             ("Oxígeno Disuelto mg/L", "#4FC3F7", "od"),
-             ("pH", "#FFB300", "ph")],
+            [("Temperatura °C", "#4EA8FF", "temp"),
+             ("Oxígeno Disuelto mg/L", "#7AC4FF", "od"),
+             ("pH", "#2E86DE", "ph")],
             0, 35, "Parámetros físicos")
         self.chart_b = LineChartWidget(
-            [("Amonio (NH₃)", "#FF5252", "amonio"),
-             ("Nitritos (NO₂)", "#FFB300", "nitrito")],
+            [("Amonio (NH₃)", "#E35B5B", "amonio"),
+             ("Nitritos (NO₂)", "#E6A23C", "nitrito")],
             0, 1.5, "Ciclo del nitrógeno")
         charts_row.addWidget(self.chart_a)
         charts_row.addWidget(self.chart_b)
@@ -34,6 +34,10 @@ class DashboardPage(QWidget):
 
         sensors.data_changed.connect(self._refresh)
         self._refresh()
+
+    def apply_theme(self, mode):
+        self.chart_a.set_theme(mode)
+        self.chart_b.set_theme(mode)
 
     def _refresh(self):
         hist = self._sensors.history()

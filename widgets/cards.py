@@ -9,6 +9,6 @@ def section_card(title):
     v.setContentsMargins(16, 14, 16, 14)
     v.setSpacing(10)
     h = QLabel(title)
-    h.setStyleSheet("color:#8794A3; font-size:12px; font-weight:700;")
+    h.setObjectName("sectionTitle")
     v.addWidget(h)
     return frame, v

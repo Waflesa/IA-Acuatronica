@@ -16,13 +16,13 @@ class SensorTool(QFrame):
         self._sensors = sensors
 
         v = QVBoxLayout(self)
-        v.setContentsMargins(10, 8, 10, 8)
-        v.setSpacing(4)
+        v.setContentsMargins(6, 5, 6, 5)
+        v.setSpacing(2)
 
         head = QHBoxLayout()
         head.setSpacing(6)
         name = QLabel(meta["name"].upper())
-        name.setStyleSheet("color:#8794A3; font-size:10px; font-weight:700;")
+        name.setObjectName("toolCap")
         self.pill = QLabel()
         head.addWidget(name)
         head.addStretch()
@@ -41,6 +41,7 @@ class SensorTool(QFrame):
 
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(int(meta["low"] * 100), int(meta["high"] * 100))
+        self.slider.setFixedHeight(14)
         v.addWidget(self.slider)
 
         self.drift_chk = QCheckBox("Simular deriva")

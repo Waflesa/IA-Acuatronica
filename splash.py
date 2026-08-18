@@ -5,6 +5,8 @@ from PySide6.QtGui import (QBrush, QColor, QFont, QFontDatabase, QFontMetrics,
                            QGuiApplication, QImage, QLinearGradient, QPainter, QPen, QPixmap)
 from PySide6.QtWidgets import QWidget
 
+from paths import base_dir
+
 _STEPS = [
     ("Inicializando módulos de control…", 8),
     ("Conectando sensores simulados…", 26),
@@ -43,7 +45,7 @@ class SplashScreen(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(_CARD_W, _CARD_H)
 
-        res_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+        res_dir = os.path.join(base_dir(), "resources")
         font_path = os.path.join(res_dir, "GuggenheimSans-Bold.ttf")
         if os.path.exists(font_path):
             QFontDatabase.addApplicationFont(font_path)
