@@ -1,7 +1,8 @@
-"""Modelo de sensores del módulo acuapónico (simulación en tiempo real).
+"""Modelo de sensores del módulo acuapónico.
 
-Cuando exista el backend real (backend/data_engine/sensor_emulator.py),
-este modelo puede leerse desde ahí sin tocar las páginas.
+Los valores provienen del backend real vía WebSocket (BackendClient). Este
+modelo solo recibe y almacena las lecturas para que las páginas las consuman;
+no genera valores aleatorios, se queda a la espera del backend.
 """
 
 import random
@@ -63,20 +64,14 @@ class Sensors(QObject):
         self._interval = 1000
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._step)
-        self._timer.start(self._interval)
 
     def set_interval(self, ms):
         self._interval = max(ms, 250)
-        if self.is_live():
-            return
-        self._timer.start(self._interval)
 
     def set_live(self, on):
-        """En modo live los valores los escribe el backend (se pausa la simulación)."""
+        """Modo live: los valores los escribe el backend (sin simulación aleatoria)."""
         if on:
             self._timer.stop()
-        else:
-            self._timer.start(self._interval)
 
     def is_live(self):
         return not self._timer.isActive()
@@ -104,11 +99,15 @@ class Sensors(QObject):
     def history(self):
         return list(self._history)
 
+    def record(self):
+        """Guarda una lectura en el historial (lo invoca el backend en cada telemetría)."""
+        self._history.append({"dt": QDateTime.currentDateTime(), **{k: self._values[k] for k in META}})
+        del self._history[:-120]
+
     def _step(self):
         for sid, m in META.items():
             if self._drift[sid]:
                 v = self._values[sid] + random.uniform(-m["step"], m["step"])
                 self.set_value(sid, v)
-        self._history.append({"dt": QDateTime.currentDateTime(), **{k: self._values[k] for k in META}})
-        del self._history[:-120]
+        self.record()
         self.data_changed.emit()

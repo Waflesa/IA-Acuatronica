@@ -5,7 +5,7 @@ import math
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, QRect, QRectF, Qt, QTimer
 from PySide6.QtGui import QBrush, QColor, QGuiApplication, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QHBoxLayout, QLabel,
+from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel,
                                QMainWindow, QPushButton, QStackedWidget, QTabBar,
                                QVBoxLayout, QWidget)
 
@@ -166,56 +166,6 @@ class _WinBtn(QPushButton):
         p.end()
 
 
-class _BackendBtn(QPushButton):
-    """Botón de conexión con el motor IA del backend (off / connecting / on / error)."""
-
-    _TEXTO = {
-        "off": "Conectar IA",
-        "connecting": "Conectando…",
-        "on": "IA conectada",
-        "error": "Error de conexión",
-    }
-    _DOT = {
-        "off": "#5B6672",
-        "connecting": "#E6A23C",
-        "on": "#2ECC71",
-        "error": "#E35B5B",
-    }
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._state = "off"
-        self._color = QColor("#8B98A7")
-        self.setObjectName("backendBtn")
-        self.setFixedSize(120, 26)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-    def set_state(self, state):
-        self._state = state
-        self.update()
-
-    def set_color(self, color):
-        self._color = QColor(color)
-        self.update()
-
-    def paintEvent(self, event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        dot = QColor(self._DOT[self._state])
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QBrush(dot))
-        p.drawEllipse(QRectF(8, 9, 8, 8))
-        f = p.font()
-        f.setPointSize(8)
-        f.setBold(True)
-        p.setFont(f)
-        p.setPen(QPen(self._color))
-        p.drawText(QRect(21, 0, self.width() - 25, self.height()),
-                   Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-                   self._TEXTO[self._state])
-        p.end()
-
-
 def _vdiv():
     d = QFrame()
     d.setObjectName("vdiv")
@@ -272,19 +222,13 @@ class MainWindow(QMainWindow):
         app_row.addStretch()
         led = _StatusDot(app_theme.palette(self._theme)["accent"])
         led.setFixedSize(10, 10)
-        status_lbl = QLabel("SISTEMA OPERATIVO")
+        status_lbl = QLabel("BACKEND DESCONECTADO")
         status_lbl.setObjectName("sideStatus")
         self.led = led
         self.status_lbl = status_lbl
         app_row.addWidget(led)
         app_row.addWidget(status_lbl)
-        self.backend_btn = _BackendBtn()
-        self.backend_btn.setToolTip(f"Conectar con el motor IA del backend ({self._client.url()})")
-        self.backend_btn.clicked.connect(self._on_backend_btn)
         self._client.status_changed.connect(self._backend_state)
-        app_row.addSpacing(8)
-        app_row.addWidget(self.backend_btn)
-        app_row.addSpacing(8)
         self.collapse_btn = QPushButton()
         self.collapse_btn.setObjectName("cornerBtn")
         self.collapse_btn.setFixedSize(24, 24)
@@ -332,21 +276,6 @@ class MainWindow(QMainWindow):
             sens_row.addWidget(tool)
         sens_row.addStretch()
         rib.addLayout(_ribbon_group("SENSORES", sens_row))
-
-        rib.addSpacing(14)
-        rib.addWidget(_vdiv())
-        rib.addSpacing(14)
-
-        ctrl = QHBoxLayout()
-        ctrl.setSpacing(8)
-        lbl = QLabel("Cada")
-        lbl.setObjectName("cardRange")
-        self.combo = QComboBox()
-        self.combo.addItems(["1 s", "3 s", "5 s"])
-        self.combo.currentIndexChanged.connect(self._on_interval)
-        ctrl.addWidget(lbl)
-        ctrl.addWidget(self.combo)
-        rib.addLayout(_ribbon_group("ACTUALIZACIÓN", ctrl))
 
         rib.addSpacing(14)
         rib.addWidget(_vdiv())
@@ -447,7 +376,7 @@ class MainWindow(QMainWindow):
             bar_bottom = bar.mapToGlobal(QPoint(0, bar.height())).y()
             if win.top() <= gpos.y() <= bar_bottom and win.left() <= gpos.x() <= win.right():
                 for btn in (self.min_btn, self.max_btn, self.close_btn,
-                            self.theme_btn, self.collapse_btn, self.backend_btn):
+                            self.theme_btn, self.collapse_btn):
                     btl = btn.mapToGlobal(QPoint(0, 0))
                     if QRect(btl, btn.size()).contains(gpos):
                         return HTCLIENT
@@ -477,10 +406,6 @@ class MainWindow(QMainWindow):
     def _update_win_buttons(self):
         self.max_btn.set_maximized(self.isMaximized())
 
-    def _on_interval(self):
-        ms = {"1 s": 1000, "3 s": 3000, "5 s": 5000}[self.combo.currentText()]
-        self._sensors.set_interval(ms)
-
     def _refresh_tools(self):
         for tool in self.tools:
             tool.refresh()
@@ -492,7 +417,6 @@ class MainWindow(QMainWindow):
         self.led.set_color(pal["accent"])
         self.theme_btn.set_mode(mode)
         self.theme_btn.setToolTip("Cambiar a modo claro" if mode == app_theme.DARK else "Cambiar a modo oscuro")
-        self.backend_btn.set_color(pal["text"])
         dark_logo = mode == app_theme.LIGHT
         self.logo_lbl.setPixmap(logo_pixmap(30, dark=dark_logo))
         self.setWindowIcon(logo_icon(64, dark=dark_logo))
@@ -503,21 +427,16 @@ class MainWindow(QMainWindow):
                 pg.apply_theme(mode)
         self._backend_state(self._client.state())
 
-    def _on_backend_btn(self):
-        self._client.toggle()
-
     def _backend_state(self, state):
-        self.backend_btn.set_state(state)
-        self.combo.setEnabled(state != "on")
         if state == "on":
             self.led.set_color("#2ECC71")
             self.status_lbl.setText("MOTOR IA CONECTADO")
-        elif state == "error":
-            self.led.set_color("#E35B5B")
-            self.status_lbl.setText("ERROR DE CONEXIÓN")
+        elif state == "connecting":
+            self.led.set_color("#E6A23C")
+            self.status_lbl.setText("CONECTANDO AL MOTOR IA…")
         else:
             self.led.set_color(app_theme.palette(self._theme)["accent"])
-            self.status_lbl.setText("SISTEMA OPERATIVO")
+            self.status_lbl.setText("BACKEND DESCONECTADO")
 
     def _toggle_theme(self):
         mode = app_theme.toggle(self._theme)

@@ -11,7 +11,7 @@ la variable de entorno H2O_BACKEND_URL).
 import json
 import os
 
-from PySide6.QtCore import QObject, QUrl, Signal
+from PySide6.QtCore import QObject, QTimer, QUrl, Signal
 from PySide6.QtWebSockets import QWebSocket
 
 DEFAULT_URL = os.environ.get("H2O_BACKEND_URL", "ws://127.0.0.1:8000/ws/telemetry")
@@ -76,7 +76,12 @@ def backend_diagnosis_to_hallazgos(dx):
 
 
 class BackendClient(QObject):
-    """Conexión WebSocket con el backend; estados: off | connecting | on | error."""
+    """Conexión automática con el backend vía WebSocket.
+
+    Se conecta al iniciar y, si el backend no está activo, reintenta cada 3 s
+    para quedar conectado en cuanto esté disponible. Estados:
+    off | connecting | on | error.
+    """
 
     status_changed = Signal(str)
 
@@ -91,6 +96,10 @@ class BackendClient(QObject):
         self._ws.disconnected.connect(self._on_disconnected)
         self._ws.errorOccurred.connect(self._on_error)
         self._ws.textMessageReceived.connect(self._on_message)
+        self._retry = QTimer(self)
+        self._retry.setInterval(3000)
+        self._retry.timeout.connect(self._auto_retry)
+        self.connect_backend()
 
     def state(self):
         return self._state
@@ -115,6 +124,7 @@ class BackendClient(QObject):
         self._ws.close()
         self._sensors.set_live(False)
         self._set_state("off")
+        self._retry.start()
 
     def telemetry(self):
         return self._last
@@ -131,7 +141,12 @@ class BackendClient(QObject):
             self._state = state
             self.status_changed.emit(state)
 
+    def _auto_retry(self):
+        if self._state != "on":
+            self.connect_backend()
+
     def _on_connected(self):
+        self._retry.stop()
         self._set_state("on")
         self._sensors.set_live(True)
 
@@ -139,10 +154,13 @@ class BackendClient(QObject):
         self._sensors.set_live(False)
         if self._state == "on":
             self._set_state("off")
+        if self._state != "on":
+            self._retry.start()
 
     def _on_error(self, error):
         self._sensors.set_live(False)
         self._set_state("error")
+        self._retry.start()
         self._ws.abort()
 
     def _on_message(self, text):
@@ -159,4 +177,5 @@ class BackendClient(QObject):
                     self._sensors.set_value(fk, float(v))
                 except (TypeError, ValueError):
                     pass
+        self._sensors.record()
         self._sensors.data_changed.emit()

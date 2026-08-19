@@ -33,11 +33,6 @@ QPushButton#cornerBtn {
 }
 QPushButton#cornerBtn:hover { color: #3D9BFF; background: rgba(61,155,255,0.06); border-radius: 4px; }
 
-QPushButton#backendBtn {
-  background: transparent; border: 1px solid #22303F; border-radius: 13px;
-}
-QPushButton#backendBtn:hover { border-color: #3D9BFF; }
-
 /* ---------- Textos ---------- */
 QLabel#heading { color: #E8EEF4; font-size: 20px; font-weight: 800; }
 QLabel#sub { color: #8B98A7; font-size: 12px; }
