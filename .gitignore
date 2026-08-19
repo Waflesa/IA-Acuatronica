@@ -20,3 +20,6 @@ dist/
 *.spec
 build_log.txt
 iscc_log.txt
+
+# Logs de ejecución
+backend/server.log

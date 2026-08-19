@@ -4,9 +4,8 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from ui.app_theme import apply, current
+from ui.logic.backend_server import start_backend_if_needed, stop_backend
 from ui.logic.sensors import Sensors
-# Importa la clase que maneja la conexión WebSocket con FastAPI
-from ui.logic.backend_client import BackendClient 
 from ui.main_window import MainWindow
 from ui.splash import SplashScreen
 
@@ -14,25 +13,14 @@ from ui.splash import SplashScreen
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("H2-OBSERVER")
-    app.setStyle("Fusion")    
-    # 1. Crear el contenedor de sensores
-    sensors = Sensors()
-    # Instanciar el cliente del backend
-    backend_client = BackendClient(sensors)
+    app.setStyle("Fusion")
 
-    window = MainWindow(sensors)
-    
-    # GUARDAR REFERENCIA EXPLICITA (Evita que Python destruya el socket)
-    window.backend_client = backend_client
     apply(app, current())
 
-    # 2. Instanciar el cliente del backend (se conecta solo en el __init__)
-    backend_client = BackendClient(sensors)
+    backend_proc = start_backend_if_needed()
 
-    # 3. Crear la ventana principal y vincular el cliente para evitar que el Garbage Collector lo elimine
+    sensors = Sensors()
     window = MainWindow(sensors)
-    window.backend_client = backend_client
-
     splash = SplashScreen()
 
     def on_splash_done():
@@ -40,8 +28,9 @@ def main():
         splash.close()
 
     splash.finished.connect(on_splash_done)
-    QTimer.singleShot(0, splash.start)
+    splash.start(ready_check=lambda: window._client.state() == "on")
 
+    app.aboutToQuit.connect(lambda: stop_backend(backend_proc))
     sys.exit(app.exec())
 
 

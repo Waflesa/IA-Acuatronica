@@ -1,10 +1,9 @@
 import ctypes
-import ctypes.wintypes
 import datetime
 import math
 
-from PySide6.QtCore import QEvent, QPoint, QPointF, QRect, QRectF, Qt, QTimer
-from PySide6.QtGui import QBrush, QColor, QGuiApplication, QPainter, QPainterPath, QPen
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
+from PySide6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel,
                                QMainWindow, QPushButton, QStackedWidget, QTabBar,
                                QVBoxLayout, QWidget)
@@ -16,31 +15,20 @@ from ui.pages.alerts_page import AlertsPage
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.diagnosis_page import DiagnosisPage
 from ui.pages.fuzzy_page import FuzzyPage
+from ui.widgets.gauge import SemiGauge
 from ui.widgets.logo import logo_icon, logo_pixmap
-from ui.widgets.sensor_tool import SensorTool
 
-WM_NCHITTEST = 0x0084
-WM_GETMINMAXINFO = 0x0024
-HTCLIENT = 1
-HTCAPTION = 2
-HTLEFT = 10
-HTRIGHT = 11
-HTTOP = 12
-HTTOPLEFT = 13
-HTTOPRIGHT = 14
-HTBOTTOM = 15
-HTBOTTOMLEFT = 16
-HTBOTTOMRIGHT = 17
+# Atributos DWM para la barra de título nativa (para que combine con el tema).
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+DWMWA_CAPTION_COLOR = 35
+DWMWA_TEXT_COLOR = 36
 
 
-class _MINMAXINFO(ctypes.Structure):
-    _fields_ = [
-        ("ptReserved", ctypes.wintypes.POINT),
-        ("ptMaxSize", ctypes.wintypes.POINT),
-        ("ptMaxPosition", ctypes.wintypes.POINT),
-        ("ptMinTrackSize", ctypes.wintypes.POINT),
-        ("ptMaxTrackSize", ctypes.wintypes.POINT),
-    ]
+def _colorref(hex_color):
+    """Convierte #RRGGBB a COLORREF (0x00BBGGRR) usado por DWM."""
+    v = int(hex_color.lstrip("#"), 16)
+    r, g, b = (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF
+    return (b << 16) | (g << 8) | r
 
 
 class _StatusDot(QWidget):
@@ -105,67 +93,6 @@ class _ThemeIconBtn(QPushButton):
         p.end()
 
 
-class _WinBtn(QPushButton):
-    """Botón de ventana: minimizar, maximizar/restaurar o cerrar (iconos vectoriales)."""
-
-    def __init__(self, kind, parent=None):
-        super().__init__(parent)
-        self._kind = kind  # "min" | "max" | "close"
-        self._maximized = False
-        self._hover = False
-        self._color = QColor("#8B98A7")
-        self.setFixedSize(46, 34)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-    def set_color(self, color):
-        self._color = QColor(color)
-        self.update()
-
-    def set_maximized(self, maximized):
-        if self._maximized != maximized:
-            self._maximized = maximized
-            self.update()
-
-    def enterEvent(self, event):
-        self._hover = True
-        self.update()
-
-    def leaveEvent(self, event):
-        self._hover = False
-        self.update()
-
-    def paintEvent(self, event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        w, h = self.width(), self.height()
-
-        if self._hover:
-            if self._kind == "close":
-                p.fillRect(0, 0, w, h, QColor("#E81123"))
-            else:
-                bg = QColor(self._color)
-                bg.setAlpha(36)
-                p.fillRect(0, 0, w, h, bg)
-
-        icon = QColor("#FFFFFF") if (self._hover and self._kind == "close") else self._color
-        pen = QPen(icon, 1.4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
-        p.setPen(pen)
-        cx, cy = w / 2.0, h / 2.0
-
-        if self._kind == "min":
-            p.drawLine(QPointF(cx - 4.5, cy), QPointF(cx + 4.5, cy))
-        elif self._kind == "max":
-            if self._maximized:
-                p.drawRect(QRectF(cx - 3.2, cy - 3.6, 7.0, 7.0))
-                p.drawRect(QRectF(cx - 4.6, cy - 1.6, 7.0, 7.0))
-            else:
-                p.drawRect(QRectF(cx - 4.4, cy - 4.0, 8.8, 8.8))
-        else:
-            p.drawLine(QPointF(cx - 4, cy - 4), QPointF(cx + 4, cy + 4))
-            p.drawLine(QPointF(cx - 4, cy + 4), QPointF(cx + 4, cy - 4))
-        p.end()
-
-
 def _vdiv():
     d = QFrame()
     d.setObjectName("vdiv")
@@ -190,7 +117,6 @@ class MainWindow(QMainWindow):
         self._client = BackendClient(sensors)
         self._theme = app_theme.current()
         self._ribbon_open = True
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setWindowTitle("H2-OBSERVER · Control de Acuaponía")
         self.setWindowIcon(logo_icon())
         self.resize(1320, 800)
@@ -239,16 +165,6 @@ class MainWindow(QMainWindow):
         app_row.addSpacing(12)
         app_row.addWidget(self.collapse_btn)
         app_row.addWidget(self.theme_btn)
-        self.min_btn = _WinBtn("min")
-        self.max_btn = _WinBtn("max")
-        self.close_btn = _WinBtn("close")
-        self.min_btn.clicked.connect(self.showMinimized)
-        self.max_btn.clicked.connect(self._toggle_max)
-        self.close_btn.clicked.connect(self.close)
-        app_row.addSpacing(6)
-        app_row.addWidget(self.min_btn)
-        app_row.addWidget(self.max_btn)
-        app_row.addWidget(self.close_btn)
         self._titlebar = QWidget()
         self._titlebar.setLayout(app_row)
         t.addWidget(self._titlebar)
@@ -268,12 +184,12 @@ class MainWindow(QMainWindow):
         rib.setSpacing(0)
 
         sens_row = QHBoxLayout()
-        sens_row.setSpacing(6)
-        self.tools = []
-        for sid, m in META.items():
-            tool = SensorTool(sid, m, sensors)
-            self.tools.append(tool)
-            sens_row.addWidget(tool)
+        sens_row.setSpacing(10)
+        self.gauges = []
+        for sid in ("ph", "temp", "od", "amonio", "nitrito"):
+            gauge = SemiGauge(sid, META[sid])
+            self.gauges.append(gauge)
+            sens_row.addWidget(gauge)
         sens_row.addStretch()
         rib.addLayout(_ribbon_group("SENSORES", sens_row))
 
@@ -310,7 +226,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         sensors.data_changed.connect(self._refresh_tools)
-        self._refresh_tools()
+        self.time_lbl.setText("—")
         self._apply_theme(self._theme)
         self._update_collapse_btn()
 
@@ -319,96 +235,35 @@ class MainWindow(QMainWindow):
 
     def showEvent(self, event):
         super().showEvent(event)
-        QTimer.singleShot(0, self._update_win_buttons)
+        QTimer.singleShot(0, self._set_caption)
 
-    def changeEvent(self, event):
-        if event.type() == QEvent.Type.WindowStateChange:
-            QTimer.singleShot(0, self._update_win_buttons)
-        super().changeEvent(event)
-
-    def nativeEvent(self, eventType, message):
-        if eventType == b"windows_generic_MSG":
+    def _set_caption(self):
+        """Colorea la barra de título nativa según el tema (combina con el dashboard)."""
+        try:
+            hwnd = int(self.winId())
+        except Exception:
+            return
+        pal = app_theme.palette(self._theme)
+        dwm = ctypes.windll.dwmapi
+        dark = 1 if self._theme == app_theme.DARK else 0
+        mode = ctypes.c_int(dark)
+        for attr in (DWMWA_USE_IMMERSIVE_DARK_MODE, 19):
             try:
-                addr = int(message)
-            except (TypeError, ValueError, OverflowError):
-                addr = message.__int__()
-            msg = ctypes.wintypes.MSG.from_address(addr)
-            if msg.message == WM_NCHITTEST:
-                l = int(msg.lParam)
-                x = ctypes.c_short(l & 0xFFFF).value
-                y = ctypes.c_short((l >> 16) & 0xFFFF).value
-                dpr = self.devicePixelRatioF() or 1.0
-                res = self._hit_test(QPoint(int(x / dpr), int(y / dpr)))
-                return True, res
-            if msg.message == WM_GETMINMAXINFO:
-                return self._wm_getminmaxinfo(msg)
-        return super().nativeEvent(eventType, message)
-
-    def _hit_test(self, gpos):
-        """Devuelve la zona de Windows (HTCAPTION para arrastrar, HT* para redimensionar)."""
-        if not self.isMaximized():
-            win = self.geometry()
-            m = 6
-            left = gpos.x() - win.left()
-            top = gpos.y() - win.top()
-            right = win.right() - gpos.x()
-            bottom = win.bottom() - gpos.y()
-            if left <= m and top <= m:
-                return HTTOPLEFT
-            if right <= m and top <= m:
-                return HTTOPRIGHT
-            if left <= m and bottom <= m:
-                return HTBOTTOMLEFT
-            if right <= m and bottom <= m:
-                return HTBOTTOMRIGHT
-            if left <= m:
-                return HTLEFT
-            if right <= m:
-                return HTRIGHT
-            if top <= m:
-                return HTTOP
-            if bottom <= m:
-                return HTBOTTOM
-
-        bar = self._titlebar
-        if bar.isVisible():
-            win = self.geometry()
-            bar_bottom = bar.mapToGlobal(QPoint(0, bar.height())).y()
-            if win.top() <= gpos.y() <= bar_bottom and win.left() <= gpos.x() <= win.right():
-                for btn in (self.min_btn, self.max_btn, self.close_btn,
-                            self.theme_btn, self.collapse_btn):
-                    btl = btn.mapToGlobal(QPoint(0, 0))
-                    if QRect(btl, btn.size()).contains(gpos):
-                        return HTCLIENT
-                return HTCAPTION
-        return HTCLIENT
-
-    def _wm_getminmaxinfo(self, msg):
-        info = _MINMAXINFO.from_address(int(msg.lParam))
-        screen = self.screen() or QGuiApplication.primaryScreen()
-        wa = screen.availableGeometry()
-        dpr = self.devicePixelRatioF() or 1.0
-        info.ptMaxPosition.x = int(wa.x() * dpr)
-        info.ptMaxPosition.y = int(wa.y() * dpr)
-        info.ptMaxSize.x = int(wa.width() * dpr)
-        info.ptMaxSize.y = int(wa.height() * dpr)
-        info.ptMinTrackSize.x = self.minimumWidth()
-        info.ptMinTrackSize.y = self.minimumHeight()
-        return True, 0
-
-    def _toggle_max(self):
-        if self.isMaximized():
-            self.showNormal()
-        else:
-            self.showMaximized()
-        self._update_win_buttons()
-
-    def _update_win_buttons(self):
-        self.max_btn.set_maximized(self.isMaximized())
+                dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(mode), ctypes.sizeof(mode))
+            except Exception:
+                pass
+        for attr, color in ((DWMWA_CAPTION_COLOR, pal["surface"]),
+                            (DWMWA_TEXT_COLOR, pal["text"])):
+            try:
+                ref = ctypes.c_uint(_colorref(color))
+                dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(ref), ctypes.sizeof(ref))
+            except Exception:
+                pass
 
     def _refresh_tools(self):
-        for tool in self.tools:
-            tool.refresh()
+        vals = self._sensors.values()
+        for gauge in self.gauges:
+            gauge.set_reading(vals[gauge._sid], self._sensors.status(gauge._sid))
         self.time_lbl.setText(datetime.datetime.now().strftime("%H:%M:%S"))
 
     def _apply_theme(self, mode):
@@ -420,23 +275,26 @@ class MainWindow(QMainWindow):
         dark_logo = mode == app_theme.LIGHT
         self.logo_lbl.setPixmap(logo_pixmap(30, dark=dark_logo))
         self.setWindowIcon(logo_icon(64, dark=dark_logo))
-        for btn in (self.min_btn, self.max_btn, self.close_btn):
-            btn.set_color(pal["text"])
         for pg in self.pages:
             if hasattr(pg, "apply_theme"):
                 pg.apply_theme(mode)
+        for gauge in self.gauges:
+            gauge.apply_theme(mode)
         self._backend_state(self._client.state())
+        if self.isVisible():
+            self._set_caption()
 
     def _backend_state(self, state):
         if state == "on":
             self.led.set_color("#2ECC71")
             self.status_lbl.setText("MOTOR IA CONECTADO")
-        elif state == "connecting":
-            self.led.set_color("#E6A23C")
-            self.status_lbl.setText("CONECTANDO AL MOTOR IA…")
         else:
-            self.led.set_color(app_theme.palette(self._theme)["accent"])
-            self.status_lbl.setText("BACKEND DESCONECTADO")
+            self.led.set_color("#E6A23C" if state == "connecting"
+                               else app_theme.palette(self._theme)["accent"])
+            self.status_lbl.setText(
+                "CONECTANDO AL MOTOR IA…" if state == "connecting" else "BACKEND DESCONECTADO")
+            for gauge in self.gauges:
+                gauge.set_disconnected()
 
     def _toggle_theme(self):
         mode = app_theme.toggle(self._theme)
