@@ -3,4 +3,7 @@ uvicorn
 pandas
 numpy
 scikit-fuzzy
+networkx
 pytz
+scikit-learn
+joblib

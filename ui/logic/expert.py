@@ -3,6 +3,9 @@
 Contrato de salida listo para conectar backend/ai/expert_system.py sin tocar la UI:
 diagnosis(values) -> {"nivel_general": str, "hallazgos": [hallazgo]}
 hallazgo -> {severity, title, message, protocol}
+
+Los umbrales de alerta (amonio >0.5, nitrito >2.5, OD <3.0) reflejan el motor
+de reglas del compañero (Acuatronica_MotorIA/fase4_sistema_experto.py).
 """
 
 
@@ -16,7 +19,7 @@ def diagnosis(values):
 
     hallazgos = []
 
-    if am >= 1.0:
+    if am >= 2.0:
         hallazgos.append(dict(
             severity="crit", title="Toxicidad por amonio (NH₃)",
             message=f"Amonio en {am:.2f} mg/L supera el umbral de toxicidad para la biomasa.",
@@ -36,14 +39,14 @@ def diagnosis(values):
             severity="ok", title="Amonio en rango",
             message=f"Amonio en {am:.2f} mg/L, dentro del rango seguro (< 0.5)."))
 
-    if nt >= 1.0:
+    if nt >= 5.0:
         hallazgos.append(dict(
             severity="crit", title="Acumulación de nitritos (NO₂⁻)",
             message=f"Nitritos en {nt:.2f} mg/L indican conversión incompleta del ciclo del nitrógeno.",
             protocol=["Aumentar recirculación al 90%",
                       "Agregar colonias de Nitrobacter",
                       "Verificar pH (óptimo 6.8–7.5)"]))
-    elif nt >= 0.5:
+    elif nt >= 2.5:
         hallazgos.append(dict(
             severity="warn", title="Nitritos en aumento",
             message=f"Nitritos en {nt:.2f} mg/L, vigilar tendencia.",
@@ -53,7 +56,7 @@ def diagnosis(values):
             severity="ok", title="Nitritos en rango",
             message=f"Nitritos en {nt:.2f} mg/L, nivel seguro."))
 
-    if od < 4.0:
+    if od < 3.0:
         hallazgos.append(dict(
             severity="crit", title="Hipoxia (bajo oxígeno disuelto)",
             message=f"OD en {od:.1f} mg/L, riesgo de estrés o muerte de los peces.",
