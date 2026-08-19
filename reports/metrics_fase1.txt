@@ -1,0 +1,7 @@
+REPORTE DE VERIFICACION - FASE 1 (WQD)
+Dimensiones: 4300 filas x 15 columnas
+Valores nulos: 0
+Filas duplicadas: 0
+Columnas con negativos: Ninguna
+
+No se realizo limpieza porque el dataset ya venia completo, sin nulos ni duplicados, asi que no hubo nada que rellenar ni eliminar.
