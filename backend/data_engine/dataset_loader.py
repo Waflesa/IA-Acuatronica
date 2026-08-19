@@ -1,56 +1,31 @@
 import pandas as pd
-from typing import Dict, Any
-
+import numpy as np
 
 class DatasetEngine:
-    def __init__(self, file_path: str):
-        self.file_path = file_path
-        self.df = None
+    def __init__(self, filepath: str):
+        self.df = pd.read_excel(filepath)
         self.current_index = 0
-        self._load_and_clean_data()
+        self.total_rows = len(self.df)
 
-    def _load_and_clean_data(self):
-        """Carga el Excel/CSV y estandariza los nombres de las columnas."""
+    def get_next_sample(self) -> dict:
+        if self.df.empty:
+            return {}
 
-        # Si guardas el Excel como .xlsx usa read_excel,
-        # si lo exportas a .csv usa read_csv
-        if self.file_path.endswith('.xlsx') or self.file_path.endswith('.xls'):
-            self.df = pd.read_excel(self.file_path)
-        else:
-            self.df = pd.read_csv(self.file_path)
+        # Obtener la fila actual
+        row = self.df.iloc[self.current_index].to_dict()
 
-        # Mapeo de columnas a nombres limpios
-        rename_map = {
-            'Temp': 'temperature',
-            'Turbidity (cm)': 'turbidity',
-            'DO(mg/L)': 'dissolved_oxygen',
-            'BOD (mg/L)': 'bod',
-            'CO2': 'co2',
-            'pH`': 'ph',
-            'Alkalinity (mg L-1 )': 'alkalinity',
-            'Hardness (mg L-1 )': 'hardness',
-            'Calcium (mg L-1 )': 'calcium',
-            'Ammonia (mg L-1 )': 'ammonia',
-            'Nitrite (mg L-1 )': 'nitrite',
-            'Phosphorus (mg L-1 )': 'phosphorus',
-            'H2S (mg L-1 )': 'h2s',
-            'Plankton (No. L-1)': 'plankton',
-            'Water Quality': 'water_quality_class'
+        # Incrementar el índice cíclicamente
+        self.current_index = (self.current_index + 1) % self.total_rows
+
+        # Mapeo y pequeña variación aleatoria para dinamismo en tiempo real
+        sample = {
+            "temperature": round(float(row.get("temperature", 25.0)) + np.random.uniform(-0.1, 0.1), 2),
+            "dissolved_oxygen": round(float(row.get("dissolved_oxygen", 6.5)) + np.random.uniform(-0.08, 0.08), 2),
+            "ammonia": round(float(row.get("ammonia", 0.25)) + np.random.uniform(-0.02, 0.02), 2),
+            "nitrite": round(float(row.get("nitrite", 0.20)) + np.random.uniform(-0.02, 0.02), 2),
+            "ph": round(float(row.get("ph", 7.0)) + np.random.uniform(-0.03, 0.03), 2),
+            "recirculation_flow": round(float(row.get("recirculation_flow", 11.5)) + np.random.uniform(-0.1, 0.1), 2),
+            "turbidity": round(float(row.get("turbidity", 10.0)), 2)
         }
-
-        self.df = self.df.rename(columns=rename_map)
-
-    def get_next_sample(self) -> Dict[str, Any]:
-        """Obtiene la fila actual y avanza al siguiente registro."""
-
-        if self.df is None or self.df.empty:
-            raise ValueError("El dataset no ha sido cargado.")
-
-        sample = self.df.iloc[self.current_index].to_dict()
-
-        # Avanza en ciclo continuo
-        self.current_index = (
-            self.current_index + 1
-        ) % len(self.df)
 
         return sample
