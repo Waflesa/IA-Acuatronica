@@ -4,13 +4,15 @@ from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QScroll
                                QVBoxLayout, QWidget)
 
 from ui.logic import expert
+from ui.logic.backend_client import backend_diagnosis_to_hallazgos
 from ui.widgets.header import PageHeader
 
 
 class AlertsPage(QWidget):
-    def __init__(self, sensors):
+    def __init__(self, sensors, client=None):
         super().__init__()
         self._sensors = sensors
+        self._client = client
         self._log = []
 
         v = QVBoxLayout(self)
@@ -69,7 +71,10 @@ class AlertsPage(QWidget):
         self._rebuild()
 
     def _update(self):
-        res = expert.diagnosis(self._sensors.values())
+        if self._client is not None and self._client.is_connected() and self._client.diagnosis():
+            res = backend_diagnosis_to_hallazgos(self._client.diagnosis())
+        else:
+            res = expert.diagnosis(self._sensors.values())
         now = datetime.datetime.now().strftime("%H:%M")
         stamp = datetime.datetime.now().strftime("%H:%M:%S")
         added = False

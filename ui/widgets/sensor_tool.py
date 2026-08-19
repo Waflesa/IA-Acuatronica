@@ -77,10 +77,12 @@ class SensorTool(QFrame):
         repolish(self.pill)
 
         drift = self._sensors.is_drift(self._sid)
+        live = self._sensors.is_live()
         self.drift_chk.blockSignals(True)
         self.drift_chk.setChecked(drift)
         self.drift_chk.blockSignals(False)
-        self.slider.setEnabled(drift)
+        self.drift_chk.setEnabled(not live)
+        self.slider.setEnabled(drift and not live)
         self.slider.blockSignals(True)
         self.slider.setValue(int(v * 100))
         self.slider.blockSignals(False)

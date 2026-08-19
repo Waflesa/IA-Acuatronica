@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QVBoxLayout, QWidget
 
 from ui.logic import fuzzy
+from ui.logic.backend_client import MAPEO_ACTUADORES
 from ui.logic.sensors import META
 from ui.widgets.actuator_bar import ActuatorBar
 from ui.widgets.cards import section_card
@@ -9,9 +10,10 @@ from ui.widgets.header import PageHeader
 
 
 class FuzzyPage(QWidget):
-    def __init__(self, sensors):
+    def __init__(self, sensors, client=None):
         super().__init__()
         self._sensors = sensors
+        self._client = client
 
         v = QVBoxLayout(self)
         v.setContentsMargins(26, 18, 26, 18)
@@ -97,9 +99,24 @@ class FuzzyPage(QWidget):
         for key, lbl in self.sp_labels.items():
             lbl.setText(f"{self.sp_sliders[key].value() / 10.0:.1f}")
 
-        accion = fuzzy.control_action(vals, setpoints)
+        usando_backend = (
+            self._client is not None and self._client.is_connected() and self._client.actuators())
+        if usando_backend:
+            acts = self._client.actuators()
+            accion = {fk: float(acts.get(bk, 0.0)) for bk, fk in MAPEO_ACTUADORES.items()}
+        else:
+            accion = fuzzy.control_action(vals, setpoints)
         for k, bar in self.bars.items():
             bar.set_value(accion[k])
 
-        reglas = fuzzy.active_rules(vals, setpoints)
-        self.rules_lbl.setText("\n".join("• " + r for r in reglas))
+        if usando_backend:
+            dx = self._client.diagnosis()
+            reglas = list(dx.get("protocols") or [])
+            wq = dx.get("water_quality")
+            if wq:
+                reglas.insert(0, f"Calidad del agua (ML): {wq}")
+            self.rules_lbl.setText(
+                "\n".join("• " + r for r in reglas) if reglas else "• Sin reglas activas")
+        else:
+            reglas = fuzzy.active_rules(vals, setpoints)
+            self.rules_lbl.setText("\n".join("• " + r for r in reglas))

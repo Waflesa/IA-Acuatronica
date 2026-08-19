@@ -60,12 +60,26 @@ class Sensors(QObject):
         self._values = {k: m["init"] for k, m in META.items()}
         self._drift = {k: True for k in META}
         self._history = []
+        self._interval = 1000
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._step)
-        self._timer.start(1000)
+        self._timer.start(self._interval)
 
     def set_interval(self, ms):
-        self._timer.start(max(ms, 250))
+        self._interval = max(ms, 250)
+        if self.is_live():
+            return
+        self._timer.start(self._interval)
+
+    def set_live(self, on):
+        """En modo live los valores los escribe el backend (se pausa la simulación)."""
+        if on:
+            self._timer.stop()
+        else:
+            self._timer.start(self._interval)
+
+    def is_live(self):
+        return not self._timer.isActive()
 
     def values(self):
         return dict(self._values)

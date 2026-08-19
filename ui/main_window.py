@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QHBoxLayout, QLa
                                QVBoxLayout, QWidget)
 
 from ui import app_theme
+from ui.logic.backend_client import BackendClient
 from ui.logic.sensors import META
 from ui.pages.alerts_page import AlertsPage
 from ui.pages.dashboard_page import DashboardPage
@@ -165,6 +166,56 @@ class _WinBtn(QPushButton):
         p.end()
 
 
+class _BackendBtn(QPushButton):
+    """Botón de conexión con el motor IA del backend (off / connecting / on / error)."""
+
+    _TEXTO = {
+        "off": "Conectar IA",
+        "connecting": "Conectando…",
+        "on": "IA conectada",
+        "error": "Error de conexión",
+    }
+    _DOT = {
+        "off": "#5B6672",
+        "connecting": "#E6A23C",
+        "on": "#2ECC71",
+        "error": "#E35B5B",
+    }
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._state = "off"
+        self._color = QColor("#8B98A7")
+        self.setObjectName("backendBtn")
+        self.setFixedSize(120, 26)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def set_state(self, state):
+        self._state = state
+        self.update()
+
+    def set_color(self, color):
+        self._color = QColor(color)
+        self.update()
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        dot = QColor(self._DOT[self._state])
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QBrush(dot))
+        p.drawEllipse(QRectF(8, 9, 8, 8))
+        f = p.font()
+        f.setPointSize(8)
+        f.setBold(True)
+        p.setFont(f)
+        p.setPen(QPen(self._color))
+        p.drawText(QRect(21, 0, self.width() - 25, self.height()),
+                   Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                   self._TEXTO[self._state])
+        p.end()
+
+
 def _vdiv():
     d = QFrame()
     d.setObjectName("vdiv")
@@ -186,6 +237,7 @@ class MainWindow(QMainWindow):
     def __init__(self, sensors):
         super().__init__()
         self._sensors = sensors
+        self._client = BackendClient(sensors)
         self._theme = app_theme.current()
         self._ribbon_open = True
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
@@ -223,8 +275,16 @@ class MainWindow(QMainWindow):
         status_lbl = QLabel("SISTEMA OPERATIVO")
         status_lbl.setObjectName("sideStatus")
         self.led = led
+        self.status_lbl = status_lbl
         app_row.addWidget(led)
         app_row.addWidget(status_lbl)
+        self.backend_btn = _BackendBtn()
+        self.backend_btn.setToolTip(f"Conectar con el motor IA del backend ({self._client.url()})")
+        self.backend_btn.clicked.connect(self._on_backend_btn)
+        self._client.status_changed.connect(self._backend_state)
+        app_row.addSpacing(8)
+        app_row.addWidget(self.backend_btn)
+        app_row.addSpacing(8)
         self.collapse_btn = QPushButton()
         self.collapse_btn.setObjectName("cornerBtn")
         self.collapse_btn.setFixedSize(24, 24)
@@ -308,9 +368,9 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.pages = [
             DashboardPage(sensors),
-            FuzzyPage(sensors),
-            DiagnosisPage(sensors),
-            AlertsPage(sensors),
+            FuzzyPage(sensors, self._client),
+            DiagnosisPage(sensors, self._client),
+            AlertsPage(sensors, self._client),
         ]
         for pg in self.pages:
             self.stack.addWidget(pg)
@@ -387,7 +447,7 @@ class MainWindow(QMainWindow):
             bar_bottom = bar.mapToGlobal(QPoint(0, bar.height())).y()
             if win.top() <= gpos.y() <= bar_bottom and win.left() <= gpos.x() <= win.right():
                 for btn in (self.min_btn, self.max_btn, self.close_btn,
-                            self.theme_btn, self.collapse_btn):
+                            self.theme_btn, self.collapse_btn, self.backend_btn):
                     btl = btn.mapToGlobal(QPoint(0, 0))
                     if QRect(btl, btn.size()).contains(gpos):
                         return HTCLIENT
@@ -432,6 +492,7 @@ class MainWindow(QMainWindow):
         self.led.set_color(pal["accent"])
         self.theme_btn.set_mode(mode)
         self.theme_btn.setToolTip("Cambiar a modo claro" if mode == app_theme.DARK else "Cambiar a modo oscuro")
+        self.backend_btn.set_color(pal["text"])
         dark_logo = mode == app_theme.LIGHT
         self.logo_lbl.setPixmap(logo_pixmap(30, dark=dark_logo))
         self.setWindowIcon(logo_icon(64, dark=dark_logo))
@@ -440,6 +501,23 @@ class MainWindow(QMainWindow):
         for pg in self.pages:
             if hasattr(pg, "apply_theme"):
                 pg.apply_theme(mode)
+        self._backend_state(self._client.state())
+
+    def _on_backend_btn(self):
+        self._client.toggle()
+
+    def _backend_state(self, state):
+        self.backend_btn.set_state(state)
+        self.combo.setEnabled(state != "on")
+        if state == "on":
+            self.led.set_color("#2ECC71")
+            self.status_lbl.setText("MOTOR IA CONECTADO")
+        elif state == "error":
+            self.led.set_color("#E35B5B")
+            self.status_lbl.setText("ERROR DE CONEXIÓN")
+        else:
+            self.led.set_color(app_theme.palette(self._theme)["accent"])
+            self.status_lbl.setText("SISTEMA OPERATIVO")
 
     def _toggle_theme(self):
         mode = app_theme.toggle(self._theme)

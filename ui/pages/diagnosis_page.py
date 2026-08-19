@@ -1,14 +1,16 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from ui.logic import expert
+from ui.logic.backend_client import backend_diagnosis_to_hallazgos
 from ui.widgets.header import PageHeader
 from ui.widgets.util import repolish
 
 
 class DiagnosisPage(QWidget):
-    def __init__(self, sensors):
+    def __init__(self, sensors, client=None):
         super().__init__()
         self._sensors = sensors
+        self._client = client
         self._sig = ""
 
         v = QVBoxLayout(self)
@@ -45,7 +47,10 @@ class DiagnosisPage(QWidget):
         self._refresh()
 
     def _refresh(self):
-        res = expert.diagnosis(self._sensors.values())
+        if self._client is not None and self._client.is_connected() and self._client.diagnosis():
+            res = backend_diagnosis_to_hallazgos(self._client.diagnosis())
+        else:
+            res = expert.diagnosis(self._sensors.values())
         sig = res["nivel_general"] + "|" + "|".join(
             f"{h['severity']}{h['title']}" for h in res["hallazgos"])
         if sig != self._sig or self.content_lay.count() == 0:
